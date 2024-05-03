@@ -5,6 +5,8 @@ using Azure.Security.KeyVault.Certificates;
 using Azure.Identity;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Azure.Core;
+using Microsoft.Extensions.Azure;
 
 namespace Company.Function
 {
@@ -40,14 +42,24 @@ namespace Company.Function
             log.LogInformation($"C# Queue trigger function - Connected into key vault where change originated...");
 
             // Extract the PFX file from the destination Key Vault. If does not exist or they are different, import the certificate from Origin Key Vault into the destination Key Vault
+            byte[] keyVaultX509ThumbprintDestination = null;
+
             var keyVaultUrlDestination = new Uri("https://kv-pfx-eastus2.vault.azure.net");
             var credentialDestination = new DefaultAzureCredential();
             var certificateClientDestination = new CertificateClient(keyVaultUrlDestination, credentialDestination);
 
-            KeyVaultCertificateWithPolicy certificateDestination = await certificateClientDestination.GetCertificateAsync(certificateName);
-            log.LogInformation($"C# Queue trigger function - Connected into key vault to retrieve pfx at destination...");
+            try
+                {
+                    KeyVaultCertificateWithPolicy certificateDestination = await certificateClientDestination.GetCertificateAsync(certificateName);
+                    log.LogInformation($"C# Queue trigger function - Connected into key vault to retrieve pfx at destination...");
+                    keyVaultX509ThumbprintDestination =  certificateDestination.Properties.X509Thumbprint;
+                } 
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+                {
+                    log.LogInformation($"C# Queue trigger function - Certificate {certificateName} does not exist in the destination Key Vault, so sync it importing a new version.");
+            }
             
-            if ((certificateDestination == null) || (certificateDestination.Properties.X509Thumbprint != certificateOrigin.Properties.X509Thumbprint))
+            if ( (keyVaultX509ThumbprintDestination == null) ||  (keyVaultX509ThumbprintDestination != certificateOrigin.Properties.X509Thumbprint))
             {
                 byte[] pfxBytes = certificateOrigin.Cer;
                 string keyid = certificateOrigin.KeyId.ToString();
