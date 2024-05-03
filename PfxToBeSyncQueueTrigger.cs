@@ -36,7 +36,7 @@ namespace Company.Function
             log.LogInformation($"C# Queue trigger function - Connected into key vault where change originated...");
 
             // Extract the PFX file from the destination Key Vault. If does not exist or they are different, import the certificate from Origin Key Vault into the destination Key Vault
-            var keyVaultUrlDestination = new Uri("https://kv-pfx-eastus.vault.azure.net");
+            var keyVaultUrlDestination = new Uri("https://kv-pfx-eastus2.vault.azure.net");
             var credentialDestination = new DefaultAzureCredential();
             var certificateClientDestination = new CertificateClient(keyVaultUrlDestination, credentialDestination);
 
