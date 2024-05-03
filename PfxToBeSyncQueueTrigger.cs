@@ -19,7 +19,7 @@ namespace Company.Function
             var jsonContent = myQueueItem.ToString();
 
             JsonDocument doc = JsonDocument.Parse(jsonContent);
-            string vaultName = doc.RootElement.GetProperty("data").GetProperty("VaultName").GetString();   
+            string vaultName = doc.RootElement.GetProperty("data").GetProperty("VaultName").GetString();
             string certificateName = doc.RootElement.GetProperty("data").GetProperty("ObjectName").GetString();
 
             // Deserialize the JSON string into a custom object
