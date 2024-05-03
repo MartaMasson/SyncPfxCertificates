@@ -27,49 +27,43 @@ namespace Company.Function
             log.LogInformation($"C# Queue trigger function - VaultName {vaultName}  CertificateName {certificateName}...");
 
             //Connecting to the key vault where the change originated
-            var keyVaultUrlOrigin = "https://kv-pfx-eastus.vault.azure.net";
+            var keyVaultUriOrigin = new Uri("https://kv-pfx-eastus.vault.azure.net");
             var credentialOrigin  = new DefaultAzureCredential();
-            var certificateClientOrigin = new CertificateClient(keyVaultUrlOrigin, credentialOrigin);
+            var certificateClientOrigin = new CertificateClient(keyVaultUriOrigin, credentialOrigin);
             log.LogInformation($"C# Queue trigger function - Connected into key vault to retrieve pfx to be sync (Origin)...");
 
-            CertificateWithPolicy certificateOrigin= await certificateClientOrigin.GetCertificateAsync(certificateName);
+            KeyVaultCertificateWithPolicy certificateOrigin= await certificateClientOrigin.GetCertificateAsync(certificateName);
             log.LogInformation($"C# Queue trigger function - Connected into key vault where change originated...");
 
             // Extract the PFX file from the destination Key Vault. If does not exist or they are different, import the certificate from Origin Key Vault into the destination Key Vault
-            var keyVaultUrlDestination = "https://kv-pfx-eastus.vault.azure.net";
+            var keyVaultUrlDestination = new Uri("https://kv-pfx-eastus.vault.azure.net");
             var credentialDestination = new DefaultAzureCredential();
             var certificateClientDestination = new CertificateClient(keyVaultUrlDestination, credentialDestination);
 
-            CertificateWithPolicy certificateDestination = await certificateClientDestination.GetCertificateAsync(certificateName);
+            KeyVaultCertificateWithPolicy certificateDestination = await certificateClientDestination.GetCertificateAsync(certificateName);
             log.LogInformation($"C# Queue trigger function - Connected into key vault to retrieve pfx at destination...");
-
-            if (certificateDestination == null || certificateDestination.Value.X509Thumbprint != certificateOrigin.Value.X509Thumbprint)
+            
+            if ((certificateDestination == null) || (certificateDestination.Properties.X509Thumbprint != certificateOrigin.Properties.X509Thumbprint))
             {
-                await keyVaultClient.ImportCertificateAsync(keyVaultUrlDestination, certificateName, certificateOrigin);
+                byte[] pfxBytes = certificateOrigin.Cer;
+                string keyid = certificateOrigin.KeyId.ToString();
+
+                log.LogInformation($"C# Queue trigger function - File went to bytes...\n");
+                log.LogInformation($"The file in bytes: {pfxBytes.ToString().Length}");
+                log.LogInformation($"The key: {keyid.ToString().Length}");
+
+                // Import the PFX file into the Key Vault as a certificate
+                var importOptions = new ImportCertificateOptions(certificateName, pfxBytes)
+                {
+                    Password = keyid.ToString() // Check if the password is really needed
+                };
+                await certificateClientDestination.ImportCertificateAsync(importOptions);
                 log.LogInformation($"Certificate {certificateName} does not exist in the destination Key Vault or the versions are different, so sync it importing a new version.");
             }
             else
             {
                 // Certificate exists and they are already sync. Nothing to do.
             }
-
-
-            // Create a CertificateClient to connect and access the Key Vault
-            var keyVaultUri = new Uri($"https://kv-vm-test-mmg.vault.azure.net/");
-            var credential = new DefaultAzureCredential();
-            var certificateClient = new CertificateClient(keyVaultUri, credential);
-            log.LogInformation($"C# Queue trigger function - Connected into key vault...");
-
-            // Import the PFX file into the Key Vault as a certificate
-            var importOptions = new ImportCertificateOptions(certificateName, pfxBytes)
-            {
-                Password = pfxPassword // Check if the password is really needed
-            };
-            await certificateClient.ImportCertificateAsync(importOptions);
-
-            log.LogInformation($"C# Queue trigger function - Imported into key vault...");
-
-
         }
     }
 
