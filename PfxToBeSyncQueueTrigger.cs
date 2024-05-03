@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Azure.Security.KeyVault.Certificates;
 using Azure.Identity;
 using System.Text.Json;
-
+using System.Threading.Tasks;
 
 namespace Company.Function
 {
