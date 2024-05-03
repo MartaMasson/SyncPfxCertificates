@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Azure.Security.KeyVault.Certificates;
 using Azure.Identity;
 using System.Text.Json;
-using System.Threading.Tasks;
+
 
 namespace Company.Function
 {
@@ -18,12 +18,16 @@ namespace Company.Function
             // The message content is a JSON string
             var jsonContent = myQueueItem.ToString();
 
+            JsonDocument doc = JsonDocument.Parse(jsonContent);
+            string vaultName = doc.RootElement.GetProperty("data").GetProperty("VaultName").GetString();   
+            string certificateName = doc.RootElement.GetProperty("data").GetProperty("ObjectName").GetString();
+
             // Deserialize the JSON string into a custom object
-            var messageObject = JsonSerializer.Deserialize<GridMessageObject>(jsonContent);
+            //var messageObject = JsonSerializer.Deserialize<GridMessageObject>(jsonContent);
 
             // Extract values from the message
-            string vaultName = messageObject.gridMessageDataObject.VaultName;
-            string certificateName = messageObject.gridMessageDataObject.ObjectName;
+            //string vaultName = messageObject.gridMessageDataObject.VaultName;
+            //string certificateName = messageObject.gridMessageDataObject.ObjectName;
             log.LogInformation($"C# Queue trigger function - VaultName {vaultName}  CertificateName {certificateName}...");
 
             //Connecting to the key vault where the change originated
