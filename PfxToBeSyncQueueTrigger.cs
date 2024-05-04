@@ -48,6 +48,7 @@ namespace Company.Function
             byte[] keyVaultX509ThumbprintDestination = null;
             try
                 {
+                    //Checking if certificate altready exists in the destination Key Vault
                     KeyVaultCertificateWithPolicy certificateDestination = await certificateClientDestination.GetCertificateAsync(certificateName);
                     log.LogInformation($"C# Queue trigger function - Connected into key vault to retrieve pfx at destination...");
                     keyVaultX509ThumbprintDestination =  certificateDestination.Properties.X509Thumbprint;
@@ -56,7 +57,7 @@ namespace Company.Function
                 {
                     log.LogInformation($"C# Queue trigger function - Certificate {certificateName} does not exist in the destination Key Vault, so sync it importing a new version.");
             }
-            
+            // If the certificate does not exist in the destination Key Vault or the versions are different, import a new version
             if ( (keyVaultX509ThumbprintDestination == null) ||  (keyVaultX509ThumbprintDestination != certificateOrigin.Properties.X509Thumbprint))
             {
 
