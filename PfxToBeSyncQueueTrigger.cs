@@ -62,6 +62,7 @@ namespace Company.Function
             {
 
                 // Download the certificate with private key from the origin Key Vault
+                log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
                 var certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(certificateName);
 
                 // Import the certificate into the destination Key Vault
@@ -69,8 +70,9 @@ namespace Company.Function
                 {
                     Policy = certificationPolicyOrigin.Value,
                 };
+                log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
                 await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
-
+                log.LogInformation($"C# Queue trigger function - Certification imported successully!");
                 /*
                 byte[] pfxBytes = certificateOrigin.Cer;
                 string keyid = certificateOrigin.KeyId.ToString();
