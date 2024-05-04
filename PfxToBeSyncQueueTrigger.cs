@@ -75,6 +75,8 @@ namespace Company.Function
                 log.LogInformation($"C# Queue trigger function - Extracting private key from certificate...");
                 // Now you can access the private key via the 'PrivateKey' property of the 'certificate' object
                 var privateKey = certificate.GetRSAPrivateKey();
+                log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
+                log.LogInformation($"C# Queue trigger function - privatekey: {privateKey.ToString}");
 
                 // Import the certificate into the destination Key Vault
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
