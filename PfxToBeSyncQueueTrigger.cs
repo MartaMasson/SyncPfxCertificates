@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Azure.Core;
 using Microsoft.Extensions.Azure;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 
 namespace Company.Function
 {
@@ -74,15 +75,15 @@ namespace Company.Function
 
                 log.LogInformation($"C# Queue trigger function - Extracting private key from certificate...");
                 // Now you can access the private key via the 'PrivateKey' property of the 'certificate' object
-                var privateKey = certificate.GetRSAPrivateKey();
+                RSA privateKey = certificate.GetRSAPrivateKey();
                 log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
-                log.LogInformation($"C# Queue trigger function - privatekey: {privateKey.ToString}");
+                log.LogInformation($"C# Queue trigger function - privatekey: {privateKey.ExportRSAPrivateKey().ToString()}");
 
                 // Import the certificate into the destination Key Vault
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
                 {
                     Policy = certificationPolicyOrigin.Value,
-                    Password = privateKey.ToString(), // Convert privateKey to string
+                    Password = privateKey.ExportRSAPrivateKey().ToString(), // Convert privateKey to string
                 };
                 log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
                 await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
