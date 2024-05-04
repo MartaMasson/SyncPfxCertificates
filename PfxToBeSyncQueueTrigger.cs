@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Azure.Core;
 using Microsoft.Extensions.Azure;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Company.Function
 {
@@ -62,17 +63,28 @@ namespace Company.Function
             {
 
                 // Download the certificate with private key from the origin Key Vault
-                log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
-                var certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(certificateName);
+                //log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
+                //var certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(certificateName);
+
+                // Extract the PFX file from the certificate
+                log.LogInformation($"C# Queue trigger function - Extracting pfx certificate...");
+                byte[] pfxBytes = certificateOrigin.Cer;
+                // You can then use the PFX value to instantiate a new X509Certificate2 object
+                var certificate = new X509Certificate2(pfxBytes, (string)null, X509KeyStorageFlags.Exportable);
+
+                log.LogInformation($"C# Queue trigger function - Extracting private key from certificate...");
+                // Now you can access the private key via the 'PrivateKey' property of the 'certificate' object
+                var privateKey = certificate.GetRSAPrivateKey();
 
                 // Import the certificate into the destination Key Vault
-                var importCertificateOptions = new ImportCertificateOptions(certificateName, certificateOrigin.Cer)
+                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
                 {
                     Policy = certificationPolicyOrigin.Value,
+                    Password = privateKey.ToString(), // Convert privateKey to string
                 };
                 log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
                 await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
-                log.LogInformation($"C# Queue trigger function - Certification imported successully!");
+                log.LogInformation($"C# Queue trigger function - Certification imported successfully!");
                 /*
                 byte[] pfxBytes = certificateOrigin.Cer;
                 string keyid = certificateOrigin.KeyId.ToString();
