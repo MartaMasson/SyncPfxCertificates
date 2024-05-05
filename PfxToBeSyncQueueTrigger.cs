@@ -71,23 +71,23 @@ namespace Company.Function
                 log.LogInformation($"C# Queue trigger function - Extracting pfx certificate...");
                 byte[] pfxBytes = certificateOrigin.Cer;
                 // You can then use the PFX value to instantiate a new X509Certificate2 object
-                var certificate = new X509Certificate2(pfxBytes, (string)null, X509KeyStorageFlags.Exportable);
+                //var certificate = new X509Certificate2(pfxBytes, (string)null, X509KeyStorageFlags.Exportable);
 
                 log.LogInformation($"C# Queue trigger function - Extracting private key from certificate...");
                 // Now you can access the private key via the 'PrivateKey' property of the 'certificate' object
-                RSA privateKey = certificate.GetRSAPrivateKey();
+                //RSA privateKey = certificate.GetRSAPrivateKey();
                 log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
-                log.LogInformation($"C# Queue trigger function - privatekey: {privateKey.ExportRSAPrivateKey().ToString()}");
+                //log.LogInformation($"C# Queue trigger function - privatekey: {privateKey.ExportRSAPrivateKey().ToString()}");
 
                 // Import the certificate into the destination Key Vault
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
                 {
                     Policy = certificationPolicyOrigin.Value,
-                    Password = privateKey.ExportRSAPrivateKey().ToString(), // Convert privateKey to string
+                    //Password = privateKey.ExportRSAPrivateKey().ToString(), // Convert privateKey to string
                 };
                 log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
                 await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
-                log.LogInformation($"C# Queue trigger function - Certification imported successfully!");
+                log.LogInformation($"C# Queue trigger function - Certification synched from Primary Region with Secondary region successfully!");
                 /*
                 byte[] pfxBytes = certificateOrigin.Cer;
                 string keyid = certificateOrigin.KeyId.ToString();
@@ -103,11 +103,11 @@ namespace Company.Function
                 };
                 await certificateClientDestination.ImportCertificateAsync(importOptions);
                 */
-                log.LogInformation($"Certificate {certificateName} does not exist in the destination Key Vault or the versions are different, so sync it importing a new version.");
             }
             else
             {
                 // Certificate exists and they are already sync. Nothing to do.
+                log.LogInformation($"Certificate {certificateName} PFX already synched in primary and secondary regions.");
             }
         }
     }
