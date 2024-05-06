@@ -9,6 +9,7 @@ using Azure.Core;
 using Microsoft.Extensions.Azure;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using Azure.Security.KeyVault.Secrets;
 
 namespace Company.Function
 {
@@ -71,10 +72,24 @@ namespace Company.Function
                 byte[] pfxBytes = certificateWithPrivateKey.Export(X509ContentType.Pfx);
                 log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
 
+                //Testando alternativa 2
+                log.LogInformation($"C# Queue trigger function - Segredo do Certificado...");
+                var client = new SecretClient(new Uri(vaultName), credentialOrigin);
+
+                log.LogInformation($"C# Queue trigger function - Pegando o segredo...");
+                KeyVaultSecret secret = client.GetSecret(certificateName);
+
+                log.LogInformation($"C# Queue trigger function - Pegando o certificado...");
+                byte[] certificate = Convert.FromBase64String(secret.Value);
+
+                log.LogInformation($"C# Queue trigger function - Gerando X509..");
+                X509Certificate2 x509 = new X509Certificate2(certificate);
+                byte[] pfxBytes2 = x509.Export(X509ContentType.Pfx);
+
                 // Import the certificate into the destination Key Vault
-                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
+                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes2)
                 {
-                    Policy = certificationPolicyOrigin.Value,
+                    //Policy = certificationPolicyOrigin.Value,
                 };
                 log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
                 await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
