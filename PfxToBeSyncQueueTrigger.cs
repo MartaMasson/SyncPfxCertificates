@@ -74,7 +74,7 @@ namespace Company.Function
 
                 //Testando alternativa 2
                 log.LogInformation($"C# Queue trigger function - Segredo do Certificado...");
-                var client = new SecretClient(new Uri(vaultName), credentialOrigin);
+                var client = new SecretClient(new Uri("https://kv-pfx-eastus.vault.azure.net"), credentialOrigin);
 
                 log.LogInformation($"C# Queue trigger function - Pegando o segredo...");
                 KeyVaultSecret secret = client.GetSecret(certificateName);
