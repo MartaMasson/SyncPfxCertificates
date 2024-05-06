@@ -64,13 +64,13 @@ namespace Company.Function
             if ( (keyVaultX509ThumbprintDestination == null) ||  (keyVaultX509ThumbprintDestination != certificateOrigin.Properties.X509Thumbprint))
             {
                 // Download the certificate with private key from the origin Key Vault
-                log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
-                X509Certificate2 certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(certificateName);
+                //log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
+                //X509Certificate2 certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(certificateName);
 
                 // Extract the PFX file from the certificate
-                log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
-                byte[] pfxBytes = certificateWithPrivateKey.Export(X509ContentType.Pfx);
-                log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
+                //log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
+                //byte[] pfxBytes = certificateWithPrivateKey.Export(X509ContentType.Pfx);
+                //log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
 
                 //Testando alternativa 2
                 log.LogInformation($"C# Queue trigger function - Segredo do Certificado...");
@@ -87,6 +87,7 @@ namespace Company.Function
                 byte[] pfxBytes2 = x509.Export(X509ContentType.Pfx);
 
                 // Import the certificate into the destination Key Vault
+                log.LogInformation($"C# Queue trigger function - Importing certification options...");
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes2)
                 {
                     //Policy = certificationPolicyOrigin.Value,
