@@ -63,32 +63,24 @@ namespace Company.Function
             // If the certificate does not exist in the destination Key Vault or the versions are different, import a new version
             if ( (keyVaultX509ThumbprintDestination == null) ||  (keyVaultX509ThumbprintDestination != certificateOrigin.Properties.X509Thumbprint))
             {
+
+                DownloadCertificateOptions options = new DownloadCertificateOptions(certificateName)
+                {
+                    //KeyStorageFlags = keyStorageFlags
+                };
+
                 // Download the certificate with private key from the origin Key Vault
-                //log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
-                //X509Certificate2 certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(certificateName);
+                log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
+                X509Certificate2 certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(options);
 
                 // Extract the PFX file from the certificate
-                //log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
-                //byte[] pfxBytes = certificateWithPrivateKey.Export(X509ContentType.Pfx);
-                //log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
-
-                //Testando alternativa 2
-                log.LogInformation($"C# Queue trigger function - Segredo do Certificado...");
-                var client = new SecretClient(new Uri("https://kv-pfx-eastus.vault.azure.net"), credentialOrigin);
-
-                log.LogInformation($"C# Queue trigger function - Pegando o segredo...");
-                KeyVaultSecret secret = client.GetSecret(certificateName);
-
-                log.LogInformation($"C# Queue trigger function - Pegando o certificado...");
-                byte[] certificate = Convert.FromBase64String(secret.Value);
-
-                log.LogInformation($"C# Queue trigger function - Gerando X509..");
-                X509Certificate2 x509 = new X509Certificate2(certificate);
-                byte[] pfxBytes2 = x509.Export(X509ContentType.Pfx);
+                log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
+                byte[] pfxBytes = certificateWithPrivateKey.Export(X509ContentType.Pfx);
+                log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
 
                 // Import the certificate into the destination Key Vault
                 log.LogInformation($"C# Queue trigger function - Importing certification options...");
-                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes2)
+                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
                 {
                     //Policy = certificationPolicyOrigin.Value,
                 };
