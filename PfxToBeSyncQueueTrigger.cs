@@ -83,24 +83,31 @@ namespace Company.Function
                 log.LogInformation($"C# Queue trigger function - tem private key: {certificateWithPrivateKey.HasPrivateKey}");
 
                 log.LogInformation($"C# Queue trigger function - Getting the private key");
-                var privatekey = certificateWithPrivateKey.GetRSAPrivateKey().ToString();
-                log.LogInformation($"C# Queue trigger function - privatekey: {privatekey}");
+                var privatekey = certificateWithPrivateKey.GetRSAPrivateKey();
+
+                // Export the RSA parameters
+                log.LogInformation($"C# Queue trigger function - Exporting parametersfrin RSA");
+                RSAParameters rsaParams = privatekey.ExportParameters(true);
+                // Convert the private key to a string format
+                
+                log.LogInformation($"C# Queue trigger function - Getting private key");
+                string privateKeyString = Convert.ToBase64String(rsaParams.D);
+                log.LogInformation($"C# Queue trigger function - String privatekey: {privateKeyString}");
 
                 var collection = new X509Certificate2Collection();
-                collection.Import(pfxBytes, privatekey, X509KeyStorageFlags.Exportable);
+                collection.Import(pfxBytes, privateKeyString, X509KeyStorageFlags.Exportable);
 
-                var pfxBytes2 = collection.Export(X509ContentType.Pfx, privatekey);
+                var pfxBytes2 = collection.Export(X509ContentType.Pfx, privateKeyString);
                 var pfxBase64 = Convert.ToBase64String(pfxBytes);
                 byte[] pfxBase642 = pfxBase64.ToArray().Select(x => (byte)x).ToArray();
 
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBase642)
                 {
-                    Password = privatekey
+                    Password = privateKeyString
                 };
 
                 certificateClientDestination.ImportCertificate(importCertificateOptions);
 
-               
                /*
                 // Import the certificate into the destination Key Vault
                 log.LogInformation($"C# Queue trigger function - Importing certification options...");
