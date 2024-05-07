@@ -10,6 +10,7 @@ using Microsoft.Extensions.Azure;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using Azure.Security.KeyVault.Secrets;
+using System.Linq;
 
 
 
@@ -78,7 +79,25 @@ namespace Company.Function
                 log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
                 byte[] pfxBytes = certificateWithPrivateKey.RawData;
                 log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
+                var privatekey = certificateWithPrivateKey.GetDSAPrivateKey().ToString();
+                log.LogInformation($"C# Queue trigger function - privatekey: {privatekey}");
 
+                var collection = new X509Certificate2Collection();
+                collection.Import(pfxBytes, privatekey, X509KeyStorageFlags.Exportable);
+
+                var pfxBytes2 = collection.Export(X509ContentType.Pfx, privatekey);
+                var pfxBase64 = Convert.ToBase64String(pfxBytes);
+                byte[] pfxBase642 = pfxBase64.ToArray().Select(x => (byte)x).ToArray();
+
+        var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBase642)
+        {
+            Password = privatekey
+        };
+
+        certificateClientDestination.ImportCertificate(importCertificateOptions);
+    }
+               
+               /*
                 // Import the certificate into the destination Key Vault
                 log.LogInformation($"C# Queue trigger function - Importing certification options...");
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
@@ -88,6 +107,7 @@ namespace Company.Function
                 log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
                 await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
                 log.LogInformation($"C# Queue trigger function - Certification synched from Primary Region with Secondary region successfully!");
+                */
             }
             else
             {
