@@ -10,7 +10,8 @@ using Microsoft.Extensions.Azure;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using Azure.Security.KeyVault.Secrets;
-//Using System.Runtime.InteropServices.RuntimeInformation;
+
+
 
 namespace Company.Function
 {
@@ -37,29 +38,62 @@ namespace Company.Function
             var certificateClientOrigin = new CertificateClient(keyVaultUriOrigin, credentialOrigin);
             log.LogInformation($"C# Queue trigger function - Connected into source key vault source to retrieve pfx to be sync ...");
 
-            /*
-            X509KeyStorageFlags keyStorageFlags = X509KeyStorageFlags.MachineKeySet;
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            // Extract the PFX file from the destination Key Vault. If does not exist or they are different, import the certificate from Origin Key Vault into the destination Key Vault
+            log.LogInformation($"C# Queue trigger function - Connecting in the destination VaultName pfx-eastus2...");
+            var keyVaultUrlDestination = new Uri("https://kv-pfx-eastus2.vault.azure.net");
+            var credentialDestination = new DefaultAzureCredential();
+            var certificateClientDestination = new CertificateClient(keyVaultUrlDestination, credentialDestination);
+            log.LogInformation($"C# Queue trigger function - Connected into the destination key vault destination where pfx will be sync...");
+
+            // Get the certificate from the origin Key Vault
+            log.LogInformation($"C# Queue trigger function - Retrieving the Certificate {certificateName}...");
+            KeyVaultCertificateWithPolicy certificateOrigin= await certificateClientOrigin.GetCertificateAsync(certificateName);
+            var certificationPolicyOrigin = certificateClientOrigin.GetCertificatePolicy(certificateName);
+
+            byte[] keyVaultX509ThumbprintDestination = null;
+            try
                 {
-                    keyStorageFlags |= X509KeyStorageFlags.EphemeralKeySet;
+                    //Checking if certificate altready exists in the destination Key Vault
+                    KeyVaultCertificateWithPolicy certificateDestination = await certificateClientDestination.GetCertificateAsync(certificateName);
+                    log.LogInformation($"C# Queue trigger function - Connected into key vault to retrieve pfx at destination...");
+                    keyVaultX509ThumbprintDestination =  certificateDestination.Properties.X509Thumbprint;
                 }
-
-            DownloadCertificateOptions options = new DownloadCertificateOptions(certificateName)
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+                {
+                    log.LogInformation($"C# Queue trigger function - Certificate {certificateName} does not exist in the destination Key Vault, so sync it importing a new version.");
+            }
+            // If the certificate does not exist in the destination Key Vault or the versions are different, import a new version
+            if ( (keyVaultX509ThumbprintDestination == null) ||  (keyVaultX509ThumbprintDestination != certificateOrigin.Properties.X509Thumbprint))
             {
-                KeyStorageFlags = keyStorageFlags
-            };
+                DownloadCertificateOptions options = new DownloadCertificateOptions(certificateName)
+                {
+                    //KeyStorageFlags = keyStorageFlags
+                };
 
-            using X509Certificate2 certificate = client.DownloadCertificate(options);
-            */
-            log.LogInformation($"C# Queue trigger function - Donwloading the certificate ...");
-            using X509Certificate2 certificate = certificateClientOrigin.DownloadCertificate(certificateName);
-            log.LogInformation($"C# Queue trigger function - Getting the private key ...");
-            using RSA key = certificate.GetRSAPrivateKey();
-            log.LogInformation($"C# Queue trigger function - Getting the hash ...");
-            byte[] hash = certificate.GetCertHash();
-            log.LogInformation($"C# Queue trigger function - Getting the signature ...");
-            byte[] signature = key.SignHash(hash, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            log.LogInformation($"C# Queue trigger function - Signature: {Convert.ToBase64String(signature)} ...");
+                // Download the certificate with private key from the origin Key Vault
+                log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
+                X509Certificate2 certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(options);
+
+                // Extract the PFX file from the certificate
+                log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
+                byte[] pfxBytes = certificateWithPrivateKey.RawData;
+                log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
+
+                // Import the certificate into the destination Key Vault
+                log.LogInformation($"C# Queue trigger function - Importing certification options...");
+                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
+                {
+                    //Policy = certificationPolicyOrigin.Value,
+                };
+                log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
+                await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
+                log.LogInformation($"C# Queue trigger function - Certification synched from Primary Region with Secondary region successfully!");
+            }
+            else
+            {
+                // Certificate exists and they are already sync. Nothing to do.
+                log.LogInformation($"Certificate {certificateName} PFX already synched in primary and secondary regions.");
+            }
         }
     }
 }
