@@ -79,7 +79,11 @@ namespace Company.Function
                 log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
                 byte[] pfxBytes = certificateWithPrivateKey.RawData;
                 log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
-                var privatekey = certificateWithPrivateKey.GetDSAPrivateKey().ToString();
+
+                log.LogInformation($"C# Queue trigger function - tem private key: {certificateWithPrivateKey.HasPrivateKey}");
+
+                log.LogInformation($"C# Queue trigger function - Getting the private key");
+                var privatekey = certificateWithPrivateKey.GetRSAPrivateKey().ToString();
                 log.LogInformation($"C# Queue trigger function - privatekey: {privatekey}");
 
                 var collection = new X509Certificate2Collection();
@@ -89,13 +93,13 @@ namespace Company.Function
                 var pfxBase64 = Convert.ToBase64String(pfxBytes);
                 byte[] pfxBase642 = pfxBase64.ToArray().Select(x => (byte)x).ToArray();
 
-        var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBase642)
-        {
-            Password = privatekey
-        };
+                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBase642)
+                {
+                    Password = privatekey
+                };
 
-        certificateClientDestination.ImportCertificate(importCertificateOptions);
-    }
+                certificateClientDestination.ImportCertificate(importCertificateOptions);
+
                
                /*
                 // Import the certificate into the destination Key Vault
