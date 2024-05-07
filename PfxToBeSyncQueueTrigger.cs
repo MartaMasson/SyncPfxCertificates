@@ -87,23 +87,24 @@ namespace Company.Function
 
                 // Export the RSA parameters
                 log.LogInformation($"C# Queue trigger function - Exporting parametersfrin RSA");
-                RSAParameters rsaParams = privatekey.ExportParameters(true);
+                //RSAParameters rsaParams = privatekey.ExportParameters(true);
+                byte[] key = privatekey.ExportRSAPrivateKey();
+
                 // Convert the private key to a string format
-                
-                log.LogInformation($"C# Queue trigger function - Getting private key");
-                string privateKeyString = Convert.ToBase64String(rsaParams.D);
-                log.LogInformation($"C# Queue trigger function - String privatekey: {privateKeyString}");
+                //log.LogInformation($"C# Queue trigger function - Getting private key");
+                //string privateKeyString = Convert.ToBase64String(rsaParams.D);
+                //log.LogInformation($"C# Queue trigger function - String privatekey: {privateKeyString}");
 
                 var collection = new X509Certificate2Collection();
-                collection.Import(pfxBytes, privateKeyString, X509KeyStorageFlags.Exportable);
+                collection.Import(pfxBytes, key.ToString(), X509KeyStorageFlags.Exportable);
 
-                var pfxBytes2 = collection.Export(X509ContentType.Pfx, privateKeyString);
+                var pfxBytes2 = collection.Export(X509ContentType.Pfx, key.ToString());
                 var pfxBase64 = Convert.ToBase64String(pfxBytes);
                 byte[] pfxBase642 = pfxBase64.ToArray().Select(x => (byte)x).ToArray();
 
                 var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBase642)
                 {
-                    Password = privateKeyString
+                    Password = key.ToString()
                 };
 
                 certificateClientDestination.ImportCertificate(importCertificateOptions);
