@@ -84,10 +84,12 @@ namespace Company.Function
 
                 log.LogInformation($"C# Queue trigger function - Getting the private key");
                 var privatekey = certificateWithPrivateKey.GetRSAPrivateKey();
+                log.LogInformation($"C# Queue trigger function - Private key: {privatekey}");
 
                 // Export the RSA parameters
                 log.LogInformation($"C# Queue trigger function - Exporting parametersfrin RSA");
                 //RSAParameters rsaParams = privatekey.ExportParameters(true);
+
                 byte[] key = privatekey.ExportRSAPrivateKey();
 
                 // Convert the private key to a string format
