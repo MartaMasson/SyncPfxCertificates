@@ -49,7 +49,6 @@ namespace Company.Function
             // Get the certificate from the origin Key Vault
             log.LogInformation($"C# Queue trigger function - Retrieving the Certificate {certificateName}...");
             KeyVaultCertificateWithPolicy certificateOrigin= await certificateClientOrigin.GetCertificateAsync(certificateName);
-            var certificationPolicyOrigin = certificateClientOrigin.GetCertificatePolicy(certificateName);
 
             byte[] keyVaultX509ThumbprintDestination = null;
             try
@@ -66,62 +65,16 @@ namespace Company.Function
             // If the certificate does not exist in the destination Key Vault or the versions are different, import a new version
             if ( (keyVaultX509ThumbprintDestination == null) ||  (keyVaultX509ThumbprintDestination != certificateOrigin.Properties.X509Thumbprint))
             {
-                DownloadCertificateOptions options = new DownloadCertificateOptions(certificateName)
-                {
-                    //KeyStorageFlags = keyStorageFlags
-                };
 
-                // Download the certificate with private key from the origin Key Vault
-                log.LogInformation($"C# Queue trigger function - Downloading the certification at the source...");
-                X509Certificate2 certificateWithPrivateKey = await certificateClientOrigin.DownloadCertificateAsync(options);
+                // Backup certificate from the source vault
+                log.LogInformation($"C# Queue trigger function - Backing up certificate at source...");
+                var backupResult = await certificateClientOrigin.BackupCertificateAsync(certificateName);
 
-                // Extract the PFX file from the certificate
-                log.LogInformation($"C# Queue trigger function - Transforming pfx into bytes ...");
-                byte[] pfxBytes = certificateWithPrivateKey.RawData;
-                log.LogInformation($"C# Queue trigger function - pfx: {pfxBytes.ToString}");
+                // Restore certificate to the destination vault
+                log.LogInformation($"C# Queue trigger function - Restoring certificate in key vault secondary...");
+                await certificateClientDestination.RestoreCertificateBackupAsync(backupResult.Value);
 
-                log.LogInformation($"C# Queue trigger function - tem private key: {certificateWithPrivateKey.HasPrivateKey}");
-
-                log.LogInformation($"C# Queue trigger function - Getting the private key");
-                var privatekey = certificateWithPrivateKey.GetRSAPrivateKey();
-                log.LogInformation($"C# Queue trigger function - Private key: {privatekey}");
-
-                // Export the RSA parameters
-                log.LogInformation($"C# Queue trigger function - Exporting parametersfrin RSA");
-                //RSAParameters rsaParams = privatekey.ExportParameters(true);
-
-                byte[] key = privatekey.ExportRSAPrivateKey();
-
-                // Convert the private key to a string format
-                //log.LogInformation($"C# Queue trigger function - Getting private key");
-                //string privateKeyString = Convert.ToBase64String(rsaParams.D);
-                //log.LogInformation($"C# Queue trigger function - String privatekey: {privateKeyString}");
-
-                var collection = new X509Certificate2Collection();
-                collection.Import(pfxBytes, key.ToString(), X509KeyStorageFlags.Exportable);
-
-                var pfxBytes2 = collection.Export(X509ContentType.Pfx, key.ToString());
-                var pfxBase64 = Convert.ToBase64String(pfxBytes);
-                byte[] pfxBase642 = pfxBase64.ToArray().Select(x => (byte)x).ToArray();
-
-                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBase642)
-                {
-                    Password = key.ToString()
-                };
-
-                certificateClientDestination.ImportCertificate(importCertificateOptions);
-
-               /*
-                // Import the certificate into the destination Key Vault
-                log.LogInformation($"C# Queue trigger function - Importing certification options...");
-                var importCertificateOptions = new ImportCertificateOptions(certificateName, pfxBytes)
-                {
-                    //Policy = certificationPolicyOrigin.Value,
-                };
-                log.LogInformation($"C# Queue trigger function - Importing the certification to the destination...");
-                await certificateClientDestination.ImportCertificateAsync(importCertificateOptions);
                 log.LogInformation($"C# Queue trigger function - Certification synched from Primary Region with Secondary region successfully!");
-                */
             }
             else
             {
@@ -131,5 +84,3 @@ namespace Company.Function
         }
     }
 }
-
-
